@@ -1,120 +1,24 @@
-from dash import Dash, dcc, html, Input, Output
+from dash import Dash, html, dcc, callback, Output, Input
 import plotly.express as px
-import dash_bootstrap_components as dbc
+import pandas as pd
 
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-server = app.server
+df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv')
 
-iris = px.data.iris()
-gapminder = px.data.gapminder()
-tips = px.data.tips()
-carshare = px.data.carshare()
+app = Dash(__name__)
 
-figure_templates = [
-    "plotly",
-    "ggplot2",
-    "seaborn",
-    "simple_white",
-    "plotly_white",
-    "plotly_dark",
-    "presentation",
-    "xgridoff",
-    "ygridoff",
-    "gridon",
-    "none",
-]
+app.layout = html.Div([
+    html.H1(children='Title of Dash App', style={'textAlign':'center'}),
+    dcc.Dropdown(df.country.unique(), 'Canada', id='dropdown-selection'),
+    dcc.Graph(id='graph-content')
+])
 
-change_figure_template = html.Div(
-    [
-        html.Div("Change Figure Template"),
-        dcc.Dropdown(figure_templates, figure_templates[0], id="template"),
-    ],
-    className="pb-4",
+@callback(
+    Output('graph-content', 'figure'),
+    Input('dropdown-selection', 'value')
 )
+def update_graph(value):
+    dff = df[df.country==value]
+    return px.line(dff, x='year', y='pop')
 
-
-app.layout = dbc.Container(
-    [
-        dbc.Row([
-            dbc.Col(dcc.Markdown("# Lorem ipsum"),lg=6),
-            dbc.Col(dcc.Markdown("# Lorem ipsum"),lg=6)
-        ]),
-        dbc.Row(dbc.Col(change_figure_template, lg=6)),
-        dbc.Row(dbc.Col(html.Div(id="graphs"))),
-    ],
-    className="dbc p-4",
-    fluid=True,
-)
-
-
-@app.callback(
-    Output("graphs", "children"),
-    Input("template", "value"),
-)
-def update_graph_theme(template):
-    graph1 = dcc.Graph(
-        figure=px.scatter(
-            iris,
-            x="sepal_width",
-            y="sepal_length",
-            color="species",
-            title=f"Iris <br>{template} figure template",
-            template=template,
-        ),
-        className="border",
-    )
-    graph2 = dcc.Graph(
-        figure=px.scatter(
-            gapminder,
-            x="gdpPercap",
-            y="lifeExp",
-            size="pop",
-            color="continent",
-            hover_name="country",
-            animation_frame="year",
-            animation_group="country",
-            log_x=True,
-            size_max=60,
-            title=f"Gapminder <br>{template} figure template",
-            template=template,
-        ),
-        className="border",
-    )
-    graph3 = dcc.Graph(
-        figure=px.violin(
-            tips,
-            y="tip",
-            x="smoker",
-            color="sex",
-            box=True,
-            points="all",
-            hover_data=tips.columns,
-            title=f"Tips <br>{template} figure template",
-            template=template,
-        ),
-        className="border",
-    )
-    graph4 = dcc.Graph(
-        figure=px.scatter_mapbox(
-            carshare,
-            lat="centroid_lat",
-            lon="centroid_lon",
-            color="peak_hour",
-            size="car_hours",
-            size_max=15,
-            zoom=10,
-            mapbox_style="carto-positron",
-            title=f"Carshare <br> {template} figure template",
-            template=template,
-        ),
-        className="border",
-    )
-
-    return [
-        dbc.Row([dbc.Col(graph1, lg=6), dbc.Col(graph2, lg=6)]),
-        dbc.Row([dbc.Col(graph3, lg=6), dbc.Col(graph4, lg=6)], className="mt-4"),
-    ]
-
-
-if __name__ == "__main__":
-    app.run_server(debug=True, port=8051)
+if __name__ == '__main__':
+    app.run(debug=True)
